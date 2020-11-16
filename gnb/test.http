@@ -1,0 +1,38 @@
+@url = http://10.0.0.101:8081
+@seid = 19a4f06a
+
+###
+
+POST {{url}}/gtp-an/v1/session
+content-type: application/json
+accept: application/json
+
+{
+    "ID": 672245080,
+    "device": "tun0",
+    "IP": "10.0.0.102"
+}
+
+###
+
+PATCH {{url}}/gtp-an/v1/session/{{seid}}
+content-type: application/json
+accept: application/json
+
+{
+    "flowID": 5
+}
+
+###
+
+PATCH {{url}}/gtp-an/v1/session/{{seid}}
+content-type: application/json
+accept: application/json
+
+{
+    "flowID": 64
+}
+
+###
+
+DELETE {{url}}/gtp-an/v1/session/{{seid}}

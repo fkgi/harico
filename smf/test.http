@@ -1,0 +1,124 @@
+@url = http://10.0.0.101:8080
+@seid = 220eb3d070ed7b4f
+
+###
+
+POST {{url}}/pfcp-cp/v1/session
+content-type: application/json
+accept: application/json
+
+{
+    "PDR": [{
+        "ID": 101,
+        "precedence": 1,
+        "PDI": {
+            "interface": "Access",
+            "FTEID": {
+                "IPv4": "0.0.0.0"
+            },
+            "QFI": 5
+        },
+        "headerRemoval": {
+            "description": "GTP-U/UDP/IPv4"
+        },
+        "FAR": 1101,
+        "URR": [2101],
+        "QER": [1]
+    },{
+        "ID": 201,
+        "precedence": 1,
+        "PDI": {
+            "interface": "Core",
+            "networkInstance": "ladn01",
+            "UE_IP": {
+                "dest": true,
+                "IPv4": "10.0.1.101"
+            }
+        },
+        "FAR": 1201,
+        "URR": [2101],
+        "QER": [1]
+    }],
+    "FAR": [{
+        "ID": 1101,
+        "action": {
+            "FORW": true
+        },
+        "forwardingParam": {
+            "interface": "Core",
+            "networkInstance": "ladn01"
+        }
+    },{
+        "ID": 1201,
+        "action": {
+            "BUFF": true
+        }
+    }],
+    "URR":[{
+        "ID": 2101,
+        "measurementMethod": {
+            "volume": true
+        },
+        "reportingTriggers": [2],
+        "volumeThreshold": {
+            "total": 1024000,
+            "uplink": 102400,
+            "downlink": 204800
+        }
+    }],
+    "QER":[{
+        "ID": 1,
+        "gateStatus": {
+            "ul": true,
+            "dl": true
+        },
+        "MBR": {
+            "ul": 1024,
+            "dl": 2048
+        },
+        "QFI": 5
+    }],
+    "pdnType": "IPv4",
+    "inactivityTimer": 3600
+}
+
+###
+
+PATCH {{url}}/pfcp-cp/v1/session/{{seid}}
+content-type: application/json
+accept: application/json
+
+{
+    "updateFAR": [{
+        "ID": 1201,
+        "action": {
+            "FORW": true
+        },
+        "forwardingParam": {
+            "headerCreation":{
+                "ID": 430239850,
+                "IPv4": "10.0.0.101"
+            }
+        }
+    }]
+}
+
+###
+
+PATCH {{url}}/pfcp-cp/v1/session/{{seid}}
+content-type: application/json
+accept: application/json
+
+{
+    "updateFAR": [{
+        "ID": 1201,
+        "action": {
+            "NOCP": true,
+            "BUFF": true
+        }
+    }]
+}
+
+###
+
+DELETE {{url}}/pfcp-cp/v1/session/{{seid}}
