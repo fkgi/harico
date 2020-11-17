@@ -148,10 +148,10 @@ func (ie Action) encode(b *bytes.Buffer) {
 
 // ForwardingParameter IE
 type ForwardingParameter struct {
-	Interface       Interface `json:"interface"`
-	NetworkInstance string    `json:"networkInstance,omitempty"`
+	Interface Interface `json:"interface"`
+	Instance  string    `json:"instance,omitempty"`
 	// Redirect Information
-	HeaderCreation   *HeaderCreation `json:"headerCreation,omitempty"`
+	Header           *HeaderCreation `json:"header,omitempty"`
 	TransportMarking byte            `json:"transportMarking,omitempty"`
 	// Forwarding Policy
 	// Header Enrichment
@@ -165,13 +165,13 @@ func (ie ForwardingParameter) encode(b *bytes.Buffer) {
 
 	ie.Interface.encodeTx(buf)
 
-	if len(ie.NetworkInstance) != 0 {
+	if len(ie.Instance) != 0 {
 		buf.Write([]byte{0x00, 0x16,
-			byte(len(ie.NetworkInstance) >> 8), byte(len(ie.NetworkInstance))})
-		buf.WriteString(ie.NetworkInstance)
+			byte(len(ie.Instance) >> 8), byte(len(ie.Instance))})
+		buf.WriteString(ie.Instance)
 	}
-	if ie.HeaderCreation != nil {
-		ie.HeaderCreation.encode(buf)
+	if ie.Header != nil {
+		ie.Header.encode(buf)
 	}
 	if ie.TransportMarking != 0 {
 		b.Write([]byte{0x00, 0x1e, 0x00, 0x02,
@@ -186,10 +186,10 @@ func (ie ForwardingParameter) encode(b *bytes.Buffer) {
 
 // UpdateForwardingParameter IE
 type UpdateForwardingParameter struct {
-	Interface       Interface `json:"interface,omitempty"`
-	NetworkInstance string    `json:"networkInstance,omitempty"`
+	Interface Interface `json:"interface,omitempty"`
+	Instance  string    `json:"instance,omitempty"`
 	// Redirect Information
-	HeaderCreation   *HeaderCreation `json:"headerCreation,omitempty"`
+	Header           *HeaderCreation `json:"header,omitempty"`
 	TransportMarking byte            `json:"transportMarking,omitempty"`
 	// Forwarding Policy
 	// Header Enrichment
@@ -204,13 +204,13 @@ func (ie UpdateForwardingParameter) encode(b *bytes.Buffer) {
 	if ie.Interface != 0 {
 		ie.Interface.encodeTx(buf)
 	}
-	if len(ie.NetworkInstance) != 0 {
+	if len(ie.Instance) != 0 {
 		buf.Write([]byte{0x00, 0x16,
-			byte(len(ie.NetworkInstance) >> 8), byte(len(ie.NetworkInstance))})
-		buf.WriteString(ie.NetworkInstance)
+			byte(len(ie.Instance) >> 8), byte(len(ie.Instance))})
+		buf.WriteString(ie.Instance)
 	}
-	if ie.HeaderCreation != nil {
-		ie.HeaderCreation.encode(buf)
+	if ie.Header != nil {
+		ie.Header.encode(buf)
 	}
 	if ie.TransportMarking != 0 {
 		b.Write([]byte{0x00, 0x1e, 0x00, 0x02,

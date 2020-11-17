@@ -13,7 +13,7 @@ type CreatePDR struct {
 	ID         uint16         `json:"ID"`
 	Precedence uint32         `json:"precedence"`
 	PDI        PDI            `json:"PDI"`
-	Header     *HeaderRemoval `json:"headerRemoval,omitempty"`
+	Header     *HeaderRemoval `json:"header,omitempty"`
 	FAR        uint32         `json:"FAR,omitempty"`
 	URR        []uint32       `json:"URR,omitempty"`
 	QER        []uint32       `json:"QER,omitempty"`
@@ -178,7 +178,7 @@ func (ie RemovePDR) encode(b *bytes.Buffer) {
 // UpdatePDR IE
 type UpdatePDR struct {
 	ID         uint16         `json:"ID"`
-	Header     *HeaderRemoval `json:"headerRemoval,omitempty"`
+	Header     *HeaderRemoval `json:"header,omitempty"`
 	Precedence uint32         `json:"precedence,omitempty"`
 	PDI        *PDI           `json:"PDI,omitempty"`
 	FAR        uint32         `json:"FAR,omitempty"`
@@ -229,9 +229,9 @@ func (ie UpdatePDR) encode(b *bytes.Buffer) {
 
 // PDI IE
 type PDI struct {
-	Interface       Interface `json:"interface"`
-	FTEID           *FTEID    `json:"FTEID,omitempty"`
-	NetworkInstance string    `json:"networkInstance,omitempty"`
+	Interface Interface `json:"interface"`
+	FTEID     *FTEID    `json:"FTEID,omitempty"`
+	Instance  string    `json:"instance,omitempty"`
 	//Redundant Transmission Parameters
 	UEIP *UEIP `json:"UE_IP,omitempty"`
 	//Traffic Endpoint ID
@@ -254,10 +254,10 @@ func (p PDI) encode(b *bytes.Buffer) {
 	if p.FTEID != nil {
 		p.FTEID.encode(buf)
 	}
-	if len(p.NetworkInstance) != 0 {
+	if len(p.Instance) != 0 {
 		buf.Write([]byte{0x00, 0x16,
-			byte(len(p.NetworkInstance) >> 8), byte(len(p.NetworkInstance))})
-		buf.WriteString(p.NetworkInstance)
+			byte(len(p.Instance) >> 8), byte(len(p.Instance))})
+		buf.WriteString(p.Instance)
 	}
 	if p.UEIP != nil {
 		p.UEIP.encode(buf)

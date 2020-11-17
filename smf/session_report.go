@@ -7,6 +7,35 @@ import (
 	"net/http"
 )
 
+// ReportRequest data
+type ReportRequest struct {
+	/*
+		ReportType
+		DownlinkData
+		Usage
+	*/
+	// Error Indication Report
+	// Load Control Information
+	// Overload Control Information
+	// Additional Usage Reports Information
+	// PFCPSRReq-Flags
+	// Old CP F-SEID
+	// Packet Rate Status Report
+	// TSC Management Information
+	// Session Report
+}
+
+// ReportResponse data
+type ReportResponse struct {
+	// Cause
+	// Offending IE
+	// Update BAR
+	// PFCPSRRsp-Flags
+	// CP F-SEID
+	// N4-u F-TEID
+	// Alternative SMF IP Address
+}
+
 func handleSessionGET(w http.ResponseWriter, r *http.Request, t *session) {
 }
 

@@ -22,8 +22,9 @@ var (
 )
 
 type session struct {
-	seid   uint64
-	nodeid string
+	seid    uint64
+	nodeid  string
+	rxStack chan ReportRequest
 }
 
 // Message of PFCP
