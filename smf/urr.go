@@ -41,13 +41,11 @@ type CreateURR struct {
 }
 
 func (ie CreateURR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x06, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x51, 0x00, 0x04})
+	binary.Write(b, binary.BigEndian, uint16(6))
+	buf := bytes.NewBuffer([]byte{0x00, 0x51, 0x00, 0x04})
 	binary.Write(buf, binary.BigEndian, ie.ID)
 
 	ie.Method.encode(buf)
-
 	buf.Write([]byte{0x00, 0x25,
 		byte(len(ie.Triggers) >> 8), byte(len(ie.Triggers))})
 	buf.Write(ie.Triggers)
@@ -56,29 +54,8 @@ func (ie CreateURR) encode(b *bytes.Buffer) {
 		ie.VolumeThreshold.encode(buf)
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
-}
-
-// RemoveURR IE
-type RemoveURR struct {
-	ID uint32 `json:"ID"`
-}
-
-func (ie RemoveURR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x4d, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x51, 0x00, 0x04})
-	binary.Write(buf, binary.BigEndian, ie.ID)
-
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // UpdateURR IE
@@ -117,30 +94,38 @@ type UpdateURR struct {
 }
 
 func (ie UpdateURR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x0d, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x51, 0x00, 0x04})
+	binary.Write(b, binary.BigEndian, uint16(13))
+	buf := bytes.NewBuffer([]byte{0x00, 0x51, 0x00, 0x04})
 	binary.Write(buf, binary.BigEndian, ie.ID)
 
 	if ie.Method != nil {
 		ie.Method.encode(buf)
 	}
-
 	if ie.Triggers != nil {
 		buf.Write([]byte{0x00, 0x25,
 			byte(len(ie.Triggers) >> 8), byte(len(ie.Triggers))})
 		buf.Write(ie.Triggers)
 	}
-
 	if ie.VolumeThreshold != nil {
 		ie.VolumeThreshold.encode(buf)
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
+}
+
+// RemoveURR IE
+type RemoveURR struct {
+	ID uint32 `json:"ID"`
+}
+
+func (ie RemoveURR) encode(b *bytes.Buffer) {
+	binary.Write(b, binary.BigEndian, uint16(17))
+	buf := bytes.NewBuffer([]byte{0x00, 0x51, 0x00, 0x04})
+	binary.Write(buf, binary.BigEndian, ie.ID)
+
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // Method IE

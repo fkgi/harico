@@ -47,7 +47,7 @@ type EstablishmentResponse struct {
 	PDR []CreatedPDR `json:"PDR,omitempty"`
 	// Load Control Information
 	// Overload Control Information
-	// Failed Rule ID `json:"failedRuleID,omitempty"`
+	// Failed Rule ID
 	// Created Traffic Endpoint
 	// Created Bridge Info for TSC
 	// ATSSS Control Parameters
@@ -77,7 +77,8 @@ func handleSessionPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var lid uint64
-	var s session
+	s := session{
+		rxStack: make(chan ReportRequest, 128)}
 	for {
 		lid = rand.Uint64()
 		if _, ok := tun[lid]; !ok {
@@ -140,14 +141,14 @@ func handleSessionPOST(w http.ResponseWriter, r *http.Request) {
 			case 57:
 				s.seid = decodeSessionID(ie.Data)
 			case 8:
-				if res.PDR == nil {
-					res.PDR = make([]CreatedPDR, 0)
-				}
 				pdr := CreatedPDR{}
-				if e = pdr.decode(ie.Data); e != nil {
-					break
+				if e := pdr.decode(ie.Data); e == nil {
+					if res.PDR == nil {
+						res.PDR = []CreatedPDR{pdr}
+					} else {
+						res.PDR = append(res.PDR, pdr)
+					}
 				}
-				res.PDR = append(res.PDR, pdr)
 			}
 		}
 
@@ -162,6 +163,7 @@ func handleSessionPOST(w http.ResponseWriter, r *http.Request) {
 			Status:   http.StatusInternalServerError,
 			Detail:   e.Error(),
 			Instance: r.URL.Path})
+		delete(tun, lid)
 		return
 	}
 
@@ -169,6 +171,20 @@ func handleSessionPOST(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Location", "/pfcp-cp/v1/session/"+strconv.FormatUint(lid, 16))
 	w.WriteHeader(http.StatusCreated)
+	w.Write(b)
+}
+
+func handleSessionLIST(w http.ResponseWriter, r *http.Request) {
+	res := make([]string, len(tun))
+	i := 0
+	for k := range tun {
+		res[i] = strconv.FormatUint(k, 16)
+		i++
+	}
+
+	b, _ := json.Marshal(res)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 }
 

@@ -150,7 +150,6 @@ func handleSessionPATCH(w http.ResponseWriter, r *http.Request, t *session, id u
 		buf.Write([]byte{0x00, 0x75, 0x00, 0x04})
 		binary.Write(buf, binary.BigEndian, d.InactivityTimer)
 	}
-
 	if d.NodeID {
 		nodeID(buf)
 	}

@@ -28,9 +28,8 @@ type CreatePDR struct {
 }
 
 func (ie CreatePDR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x01, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x38, 0x00, 0x02})
+	binary.Write(b, binary.BigEndian, uint16(1))
+	buf := bytes.NewBuffer([]byte{0x00, 0x38, 0x00, 0x02})
 	binary.Write(buf, binary.BigEndian, ie.ID)
 
 	buf.Write([]byte{0x00, 0x1d, 0x00, 0x04})
@@ -54,11 +53,70 @@ func (ie CreatePDR) encode(b *bytes.Buffer) {
 		binary.Write(buf, binary.BigEndian, qer)
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
+}
+
+// UpdatePDR IE
+type UpdatePDR struct {
+	ID         uint16         `json:"ID"`
+	Header     *HeaderRemoval `json:"header,omitempty"`
+	Precedence uint32         `json:"precedence,omitempty"`
+	PDI        *PDI           `json:"PDI,omitempty"`
+	FAR        uint32         `json:"FAR,omitempty"`
+	URR        []uint32       `json:"URR,omitempty"`
+	QER        []uint32       `json:"QER,omitempty"`
+	// Activate Predefined Rules
+	// Deactivate Predefined Rules
+	// Activation Time
+	// Deactivation Time
+	// IP Multicast Addressing Info
+}
+
+func (ie UpdatePDR) encode(b *bytes.Buffer) {
+	binary.Write(b, binary.BigEndian, uint16(9))
+	buf := bytes.NewBuffer([]byte{0x00, 0x38, 0x00, 0x02})
+	binary.Write(buf, binary.BigEndian, ie.ID)
+
+	if ie.Header != nil && ie.Header.Desctiption != 0 {
+		ie.Header.encode(buf)
+	}
+	if ie.Precedence != 0 {
+		buf.Write([]byte{0x00, 0x1d, 0x00, 0x04})
+		binary.Write(buf, binary.BigEndian, ie.Precedence)
+	}
+	if ie.PDI != nil {
+		ie.PDI.encode(buf)
+	}
+	if ie.FAR != 0 {
+		buf.Write([]byte{0x00, 0x6c, 0x00, 0x04})
+		binary.Write(buf, binary.BigEndian, ie.FAR)
+	}
+	for _, urr := range ie.URR {
+		buf.Write([]byte{0x00, 0x51, 0x00, 0x04})
+		binary.Write(buf, binary.BigEndian, urr)
+	}
+	for _, qer := range ie.QER {
+		buf.Write([]byte{0x00, 0x6d, 0x00, 0x04})
+		binary.Write(buf, binary.BigEndian, qer)
+	}
+
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
+}
+
+// RemovePDR IE
+type RemovePDR struct {
+	ID uint16 `json:"ID"`
+}
+
+func (ie RemovePDR) encode(b *bytes.Buffer) {
+	binary.Write(b, binary.BigEndian, uint16(15))
+	buf := bytes.NewBuffer([]byte{0x00, 0x38, 0x00, 0x02})
+	binary.Write(buf, binary.BigEndian, ie.ID)
+
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // CreatedPDR IE
@@ -157,76 +215,6 @@ func (ie *UpdatedPDR) decode(b []byte) (e error) {
 	return
 }
 
-// RemovePDR IE
-type RemovePDR struct {
-	ID uint16 `json:"ID"`
-}
-
-func (ie RemovePDR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x0f, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x38, 0x00, 0x02})
-	binary.Write(buf, binary.BigEndian, ie.ID)
-
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
-}
-
-// UpdatePDR IE
-type UpdatePDR struct {
-	ID         uint16         `json:"ID"`
-	Header     *HeaderRemoval `json:"header,omitempty"`
-	Precedence uint32         `json:"precedence,omitempty"`
-	PDI        *PDI           `json:"PDI,omitempty"`
-	FAR        uint32         `json:"FAR,omitempty"`
-	URR        []uint32       `json:"URR,omitempty"`
-	QER        []uint32       `json:"QER,omitempty"`
-	// Activate Predefined Rules
-	// Deactivate Predefined Rules
-	// Activation Time
-	// Deactivation Time
-	// IP Multicast Addressing Info
-}
-
-func (ie UpdatePDR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x09, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x38, 0x00, 0x02})
-	binary.Write(buf, binary.BigEndian, ie.ID)
-
-	if ie.Header != nil && ie.Header.Desctiption != 0 {
-		ie.Header.encode(buf)
-	}
-	if ie.Precedence != 0 {
-		buf.Write([]byte{0x00, 0x1d, 0x00, 0x04})
-		binary.Write(buf, binary.BigEndian, ie.Precedence)
-	}
-	if ie.PDI != nil {
-		ie.PDI.encode(buf)
-	}
-	if ie.FAR != 0 {
-		buf.Write([]byte{0x00, 0x6c, 0x00, 0x04})
-		binary.Write(buf, binary.BigEndian, ie.FAR)
-	}
-	for _, urr := range ie.URR {
-		buf.Write([]byte{0x00, 0x51, 0x00, 0x04})
-		binary.Write(buf, binary.BigEndian, urr)
-	}
-	for _, qer := range ie.QER {
-		buf.Write([]byte{0x00, 0x6d, 0x00, 0x04})
-		binary.Write(buf, binary.BigEndian, qer)
-	}
-
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
-}
-
 // PDI IE
 type PDI struct {
 	Interface Interface `json:"interface"`
@@ -248,7 +236,8 @@ type PDI struct {
 }
 
 func (p PDI) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x02, 0x00, 0x00})
+	binary.Write(b, binary.BigEndian, uint16(2))
+	buf := &bytes.Buffer{}
 
 	p.Interface.encodeRx(buf)
 	if p.FTEID != nil {
@@ -266,11 +255,8 @@ func (p PDI) encode(b *bytes.Buffer) {
 		buf.Write([]byte{0x00, 0x7c, 0x00, 0x01, p.QFI})
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // HeaderRemoval IE

@@ -7,27 +7,29 @@ import (
 
 // CreateQER IE
 type CreateQER struct {
-	ID uint32 `json:"ID"`
-	// QER Correlation ID
-	GateStatus GateStatus `json:"gateStatus"`
-	MBR        *bitrate   `json:"MBR,omitempty"`
-	GBR        *bitrate   `json:"GBR,omitempty"`
+	ID          uint32     `json:"ID"`
+	Correlation uint32     `json:"correlationID,omitempty"`
+	GateStatus  GateStatus `json:"gateStatus"`
+	MBR         *bitrate   `json:"MBR,omitempty"`
+	GBR         *bitrate   `json:"GBR,omitempty"`
 	// Packet Rate Status
-	QFI                   byte `json:"QFI,omitempty"`
-	ReflectiveQoS         bool `json:"reflectiveQoS,omitempty"`
-	PagingPolicyIndicator byte `json:"pagingPolicyIndicator,omitempty"`
+	QFI byte `json:"QFI,omitempty"`
+	RQI bool `json:"RQI,omitempty"`
+	PPI byte `json:"PPI,omitempty"`
 	// Averaging Window
 	// QER Control Indications
 }
 
 func (ie CreateQER) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x07, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x6d, 0x00, 0x04})
+	binary.Write(b, binary.BigEndian, uint16(7))
+	buf := bytes.NewBuffer([]byte{0x00, 0x6d, 0x00, 0x04})
 	binary.Write(buf, binary.BigEndian, ie.ID)
 
 	ie.GateStatus.encode(buf)
-
+	if ie.Correlation != 0 {
+		buf.Write([]byte{0x00, 0x1c, 0x00, 0x04})
+		binary.Write(buf, binary.BigEndian, ie.Correlation)
+	}
 	if ie.MBR != nil {
 		buf.Write([]byte{0x00, 0x1a, 0x00, 0x0a})
 		buf.Write(ie.MBR.ulBytes())
@@ -41,18 +43,65 @@ func (ie CreateQER) encode(b *bytes.Buffer) {
 	if ie.QFI != 0 {
 		buf.Write([]byte{0x00, 0x7c, 0x00, 0x01, ie.QFI})
 	}
-	if ie.ReflectiveQoS {
+	if ie.RQI {
 		buf.Write([]byte{0x00, 0x7b, 0x00, 0x01, 0x01})
 	}
-	if ie.PagingPolicyIndicator != 0 {
-		buf.Write([]byte{0x00, 0x9e, 0x00, 0x01, ie.PagingPolicyIndicator})
+	if ie.PPI != 0 {
+		buf.Write([]byte{0x00, 0x9e, 0x00, 0x01, ie.PPI})
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
+}
+
+// UpdateQER IE
+type UpdateQER struct {
+	ID          uint32      `json:"ID"`
+	Correlation uint32      `json:"correlationID,omitempty"`
+	GateStatus  *GateStatus `json:"gateStatus,omitempty"`
+	MBR         *bitrate    `json:"MBR,omitempty"`
+	GBR         *bitrate    `json:"GBR,omitempty"`
+	QFI         byte        `json:"QFI,omitempty"`
+	RQI         bool        `json:"RQI,omitempty"`
+	PPI         byte        `json:"PPI,omitempty"`
+	// Averaging Window
+	// QER Control Indications
+}
+
+func (ie UpdateQER) encode(b *bytes.Buffer) {
+	binary.Write(b, binary.BigEndian, uint16(14))
+	buf := bytes.NewBuffer([]byte{0x00, 0x6d, 0x00, 0x04})
+	binary.Write(buf, binary.BigEndian, ie.ID)
+
+	if ie.Correlation != 0 {
+		buf.Write([]byte{0x00, 0x1c, 0x00, 0x04})
+		binary.Write(buf, binary.BigEndian, ie.Correlation)
+	}
+	if ie.GateStatus != nil {
+		ie.GateStatus.encode(buf)
+	}
+	if ie.MBR != nil {
+		buf.Write([]byte{0x00, 0x1a, 0x00, 0x08})
+		binary.Write(buf, binary.BigEndian, ie.MBR.UL)
+		binary.Write(buf, binary.BigEndian, ie.MBR.DL)
+	}
+	if ie.GBR != nil {
+		buf.Write([]byte{0x00, 0x1b, 0x00, 0x08})
+		binary.Write(buf, binary.BigEndian, ie.GBR.UL)
+		binary.Write(buf, binary.BigEndian, ie.GBR.DL)
+	}
+	if ie.QFI != 0 {
+		buf.Write([]byte{0x00, 0x7c, 0x00, 0x01, ie.QFI})
+	}
+	if ie.RQI {
+		buf.Write([]byte{0x00, 0x7b, 0x00, 0x01, 0x01})
+	}
+	if ie.PPI != 0 {
+		buf.Write([]byte{0x00, 0x9e, 0x00, 0x01, ie.PPI})
+	}
+
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // RemoveQER IE
@@ -61,16 +110,12 @@ type RemoveQER struct {
 }
 
 func (ie RemoveQER) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x12, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x6d, 0x00, 0x04})
+	binary.Write(b, binary.BigEndian, uint16(18))
+	buf := bytes.NewBuffer([]byte{0x00, 0x6d, 0x00, 0x04})
 	binary.Write(buf, binary.BigEndian, ie.ID)
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 type bitrate struct {
@@ -96,55 +141,6 @@ func (ie bitrate) dlBytes() []byte {
 		byte(ie.DL >> 8),
 		byte(ie.DL),
 	}
-}
-
-// UpdateQER IE
-type UpdateQER struct {
-	ID uint32 `json:"ID"`
-	// QER Correlation ID
-	GateStatus            *GateStatus `json:"gateStatus,omitempty"`
-	MBR                   *bitrate    `json:"MBR,omitempty"`
-	GBR                   *bitrate    `json:"GBR,omitempty"`
-	QFI                   byte        `json:"QFI,omitempty"`
-	ReflectiveQoS         bool        `json:"reflectiveQoS,omitempty"`
-	PagingPolicyIndicator byte        `json:"pagingPolicyIndicator,omitempty"`
-	// Averaging Window
-	// QER Control Indications
-}
-
-func (ie UpdateQER) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x0e, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x6d, 0x00, 0x04})
-	binary.Write(buf, binary.BigEndian, ie.ID)
-	if ie.GateStatus != nil {
-		ie.GateStatus.encode(buf)
-	}
-	if ie.MBR != nil {
-		buf.Write([]byte{0x00, 0x1a, 0x00, 0x08})
-		binary.Write(buf, binary.BigEndian, ie.MBR.UL)
-		binary.Write(buf, binary.BigEndian, ie.MBR.DL)
-	}
-	if ie.GBR != nil {
-		buf.Write([]byte{0x00, 0x1b, 0x00, 0x08})
-		binary.Write(buf, binary.BigEndian, ie.GBR.UL)
-		binary.Write(buf, binary.BigEndian, ie.GBR.DL)
-	}
-	if ie.QFI != 0 {
-		buf.Write([]byte{0x00, 0x7c, 0x00, 0x01, ie.QFI})
-	}
-	if ie.ReflectiveQoS {
-		buf.Write([]byte{0x00, 0x7b, 0x00, 0x01, 0x01})
-	}
-	if ie.PagingPolicyIndicator != 0 {
-		buf.Write([]byte{0x00, 0x9e, 0x00, 0x01, ie.PagingPolicyIndicator})
-	}
-
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
 }
 
 // GateStatus IE

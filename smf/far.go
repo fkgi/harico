@@ -16,44 +16,20 @@ type CreateFAR struct {
 }
 
 func (ie CreateFAR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x03, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x6c, 0x00, 0x04})
+	binary.Write(b, binary.BigEndian, uint16(3))
+	buf := bytes.NewBuffer([]byte{0x00, 0x6c, 0x00, 0x04})
 	binary.Write(buf, binary.BigEndian, ie.ID)
 
 	ie.Action.encode(buf)
-
 	if ie.Forwarding != nil {
 		ie.Forwarding.encode(buf)
 	}
-
 	if ie.BAR != 0 {
 		buf.Write([]byte{0x00, 0x58, 0x00, 0x01, ie.BAR})
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
-}
-
-// RemoveFAR IE
-type RemoveFAR struct {
-	ID uint32 `json:"ID"`
-}
-
-func (ie RemoveFAR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x10, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x6c, 0x00, 0x04})
-	binary.Write(buf, binary.BigEndian, ie.ID)
-
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // UpdateFAR IE
@@ -61,14 +37,13 @@ type UpdateFAR struct {
 	ID         uint32                     `json:"ID"`
 	Action     *Action                    `json:"action,omitempty"`
 	Forwarding *UpdateForwardingParameter `json:"forwardingParam,omitempty"`
+	BAR        byte                       `json:"BAR,omitempty"`
 	// Redundant Transmission Parameters
-	BAR byte `json:"BAR,omitempty"`
 }
 
 func (ie UpdateFAR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x0a, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x6c, 0x00, 0x04})
+	binary.Write(b, binary.BigEndian, uint16(10))
+	buf := bytes.NewBuffer([]byte{0x00, 0x6c, 0x00, 0x04})
 	binary.Write(buf, binary.BigEndian, ie.ID)
 
 	if ie.Action != nil {
@@ -81,11 +56,22 @@ func (ie UpdateFAR) encode(b *bytes.Buffer) {
 		buf.Write([]byte{0x00, 0x58, 0x00, 0x01, ie.BAR})
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
+}
+
+// RemoveFAR IE
+type RemoveFAR struct {
+	ID uint32 `json:"ID"`
+}
+
+func (ie RemoveFAR) encode(b *bytes.Buffer) {
+	binary.Write(b, binary.BigEndian, uint16(16))
+	buf := bytes.NewBuffer([]byte{0x00, 0x6c, 0x00, 0x04})
+	binary.Write(buf, binary.BigEndian, ie.ID)
+
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // Action IE
@@ -104,6 +90,8 @@ type Action struct {
 }
 
 func (ie Action) encode(b *bytes.Buffer) {
+	b.Write([]byte{0x00, 0x2c, 0x00})
+
 	a := [2]byte{}
 	if ie.DROP {
 		a[0] |= 0x01
@@ -138,7 +126,7 @@ func (ie Action) encode(b *bytes.Buffer) {
 	if ie.EDRT {
 		a[1] |= 0x01
 	}
-	b.Write([]byte{0x00, 0x2c, 0x00})
+
 	if a[1] == 0x00 {
 		b.Write([]byte{0x01, a[0]})
 	} else {
@@ -161,27 +149,24 @@ type ForwardingParameter struct {
 }
 
 func (ie ForwardingParameter) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x04, 0x00, 0x00})
+	binary.Write(b, binary.BigEndian, uint16(4))
+	buf := &bytes.Buffer{}
 
 	ie.Interface.encodeTx(buf)
-
 	if len(ie.Instance) != 0 {
-		buf.Write([]byte{0x00, 0x16,
-			byte(len(ie.Instance) >> 8), byte(len(ie.Instance))})
+		buf.Write([]byte{0x00, 0x16})
+		binary.Write(buf, binary.BigEndian, uint16(len(ie.Instance)))
 		buf.WriteString(ie.Instance)
 	}
 	if ie.Header != nil {
 		ie.Header.encode(buf)
 	}
 	if ie.TransportMarking != 0 {
-		b.Write([]byte{0x00, 0x1e, 0x00, 0x02,
-			ie.TransportMarking, 0xfc})
+		b.Write([]byte{0x00, 0x1e, 0x00, 0x02, ie.TransportMarking, 0xfc})
 	}
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // UpdateForwardingParameter IE
@@ -199,29 +184,26 @@ type UpdateForwardingParameter struct {
 }
 
 func (ie UpdateForwardingParameter) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x0b, 0x00, 0x00})
+	binary.Write(b, binary.BigEndian, uint16(11))
+	buf := &bytes.Buffer{}
 
 	if ie.Interface != 0 {
 		ie.Interface.encodeTx(buf)
 	}
 	if len(ie.Instance) != 0 {
-		buf.Write([]byte{0x00, 0x16,
-			byte(len(ie.Instance) >> 8), byte(len(ie.Instance))})
+		buf.Write([]byte{0x00, 0x16})
+		binary.Write(buf, binary.BigEndian, uint16(len(ie.Instance)))
 		buf.WriteString(ie.Instance)
 	}
 	if ie.Header != nil {
 		ie.Header.encode(buf)
 	}
 	if ie.TransportMarking != 0 {
-		b.Write([]byte{0x00, 0x1e, 0x00, 0x02,
-			ie.TransportMarking, 0xfc})
+		b.Write([]byte{0x00, 0x1e, 0x00, 0x02, ie.TransportMarking, 0xfc})
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // HeaderCreation indicate Outer Header Creation IE

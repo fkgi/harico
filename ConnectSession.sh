@@ -26,7 +26,9 @@ gnbapi="localhost:8081"
 ueip="10.0.1.101"
 asip="10.0.1.102"
 
-
+###
+# init PFCP session
+###
 req=$(cat << EOS
 {
     "PDR": [{
@@ -106,10 +108,16 @@ EOS
 )
 res=$(curl -v -X POST -H "Content-Type: application/json" -d "${req}" ${smfapi}/pfcp-cp/v1/session)
 
+###
+# get UPF side tunnel-endpoint id
+###
 context=$(echo $res | jq -r '.ID')
 teid=$(echo $res | jq -r '.PDR[0].FTEID.ID')
 teip=$(echo $res | jq -r '.PDR[0].FTEID.IPv4')
 
+###
+# init GTP tunnel
+###
 req=$(cat << EOS
 {
     "ID": ${teid},
@@ -120,9 +128,16 @@ EOS
 )
 res=$(curl -v -X POST -H "Content-Type: application/json" -d "${req}" ${gnbapi}/gtp-an/v1/session)
 
+###
+# get gNB tunnel-endpoint id
+###
 teid=$(echo $res | jq -r '.ID')
 teip=$(echo $res | jq -r '.IP')
 
+###
+# modify PFCP session
+# notify gNB tunnel-endpoint id
+###
 req=$(cat << EOS
 {
     "updateFAR": [{
@@ -142,10 +157,20 @@ EOS
 )
 curl -v -X PATCH -H "Content-Type: application/json" -d "${req}" ${smfapi}/pfcp-cp/v1/session/${context}
 
+###
+# modify gNB local tunnel-endoint id to HEX
+# for call gNB API
+###
 teid=$(printf '%x' ${teid})
 
+###
+# ping from UE to AS
+###
 ping ${asip} -I ${ueip} -c 5
 
+###
+# modify PFCP session to buffer mode
+###
 bufreq=$(cat << EOS
 {
     "updateFAR": [{
@@ -160,13 +185,29 @@ EOS
 )
 curl -v -X PATCH -H "Content-Type: application/json" -d "${bufreq}" ${smfapi}/pfcp-cp/v1/session/${context}
 
+###
+# ping from UE to AS
+###
 ping ${asip} -I ${ueip} -c 5
 sleep 10
+
+###
+# modify PFCP session to forward mode
+###
 curl -v -X PATCH -H "Content-Type: application/json" -d "${req}" ${smfapi}/pfcp-cp/v1/session/${context}
 
+###
+# ping from UE to AS
+###
 ping ${asip} -I ${ueip} -c 5
 sleep 5
 
+###
+# stop PFCP session
+###
 res=$(curl -v -X DELETE ${smfapi}/pfcp-cp/v1/session/${context})
 
+###
+# stop GTP tunnel
+###
 res=$(curl -v -X DELETE ${gnbapi}/gtp-an/v1/session/${teid})

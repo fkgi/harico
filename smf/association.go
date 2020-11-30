@@ -18,7 +18,7 @@ var (
 
 	recovery = time.Now()
 	waitTime = time.Second * 3
-	hbTime   = time.Second * 30
+	hbTime   = time.Second * 60
 )
 
 type session struct {

@@ -1,27 +1,44 @@
 package main
 
-import "bytes"
+import (
+	"bytes"
+	"encoding/binary"
+)
 
 // CreateBAR IE
 type CreateBAR struct {
-	ID                             byte `json:"ID"`
-	SuggestedBufferingPacketsCount byte `json:"suggestedBufferingPacketsCount,omitempty"`
+	ID         byte `json:"ID"`
+	BufPackets byte `json:"bufferingPacketsCount,omitempty"`
 }
 
 func (ie CreateBAR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x55, 0x00, 0x00})
+	binary.Write(b, binary.BigEndian, uint16(85))
+	buf := bytes.NewBuffer([]byte{0x00, 0x58, 0x00, 0x01, ie.ID})
 
-	buf.Write([]byte{0x00, 0x58, 0x00, 0x01, ie.ID})
-
-	if ie.SuggestedBufferingPacketsCount != 0 {
-		buf.Write([]byte{0x00, 0x8c, 0x00, 0x01, ie.SuggestedBufferingPacketsCount})
+	if ie.BufPackets != 0 {
+		buf.Write([]byte{0x00, 0x8c, 0x00, 0x01, ie.BufPackets})
 	}
 
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
+}
+
+// UpdateBAR IE
+type UpdateBAR struct {
+	ID         byte `json:"ID"`
+	BufPackets byte `json:"bufferingPacketsCount,omitempty"`
+}
+
+func (ie UpdateBAR) encode(b *bytes.Buffer) {
+	binary.Write(b, binary.BigEndian, uint16(86))
+	buf := bytes.NewBuffer([]byte{0x00, 0x58, 0x00, 0x01, ie.ID})
+
+	if ie.BufPackets != 0 {
+		buf.Write([]byte{0x00, 0x8c, 0x00, 0x01, ie.BufPackets})
+	}
+
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }
 
 // RemoveBAR IE
@@ -30,35 +47,9 @@ type RemoveBAR struct {
 }
 
 func (ie RemoveBAR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x57, 0x00, 0x00})
+	binary.Write(b, binary.BigEndian, uint16(87))
+	buf := bytes.NewBuffer([]byte{0x00, 0x58, 0x00, 0x01, ie.ID})
 
-	buf.Write([]byte{0x00, 0x58, 0x00, 0x01, ie.ID})
-
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
-}
-
-// UpdateBAR IE
-type UpdateBAR struct {
-	ID                             byte `json:"ID"`
-	SuggestedBufferingPacketsCount byte `json:"suggestedBufferingPacketsCount,omitempty"`
-}
-
-func (ie UpdateBAR) encode(b *bytes.Buffer) {
-	buf := bytes.NewBuffer([]byte{0x00, 0x56, 0x00, 0x00})
-
-	buf.Write([]byte{0x00, 0x58, 0x00, 0x01, ie.ID})
-
-	if ie.SuggestedBufferingPacketsCount != 0 {
-		buf.Write([]byte{0x00, 0x8c, 0x00, 0x01, ie.SuggestedBufferingPacketsCount})
-	}
-
-	data := buf.Bytes()
-	l := len(data) - 4
-	data[2] = byte(l >> 8)
-	data[3] = byte(l)
-	b.Write(data)
+	binary.Write(b, binary.BigEndian, uint16(buf.Len()))
+	buf.WriteTo(b)
 }

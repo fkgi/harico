@@ -79,12 +79,14 @@ var apiHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			handleSessionPOST(w, r)
+		case http.MethodGet:
+			handleSessionLIST(w, r)
 		default:
-			w.Header().Set("allow", "POST")
+			w.Header().Set("allow", "POST, GET")
 			errorResponse(w, ProblemDetails{
 				Title:    "invalid method",
 				Status:   http.StatusMethodNotAllowed,
-				Detail:   "only POST is allowed",
+				Detail:   "only POST/GET is allowed",
 				Instance: r.URL.Path})
 		}
 	} else if b, _ := path.Match("/pfcp-cp/v1/session/*", p); b {
